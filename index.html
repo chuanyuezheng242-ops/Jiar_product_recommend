@@ -963,7 +963,7 @@ window.INITIAL_PRODUCTS = [];
   <script>
 (function () {
   const DATA_URL = "data.csv";
-  const POOL_KEY = "plus_size_product_selection_pool_v3";
+  const POOL_KEY = "plus_size_product_selection_pool_v3_row_tag_unique";
   const DETAIL_KEYS = ["商品详情页URL", "商品详情链接", "详情链接", "商品链接", "链接", "Product URL", "product_url", "url"];
   const IMAGE_KEYS = ["首图 url", "首图URL", "图片URL", "商品图片", "图片链接", "Image URL", "image_url", "image"];
 
@@ -1177,7 +1177,7 @@ window.INITIAL_PRODUCTS = [];
 
   function normalizeRows(rows) {
     return rows
-      .map((row) => {
+      .map((row, index) => {
         const clean = {};
         Object.entries(row || {}).forEach(([key, value]) => {
           const name = String(key || "").trim();
@@ -1186,19 +1186,23 @@ window.INITIAL_PRODUCTS = [];
         });
 
         const pid = getValue(clean, ["PID", "pid", "商品ID", "Product ID"]);
+        const spu = getValue(clean, ["SPU", "spu"]);
+        const tag = getValue(clean, ["新老品标签", "标签", "Tag", "tag"]);
         const imageUrl = getValue(clean, IMAGE_KEYS);
+        const detailUrl = getDetailUrl(clean, pid);
+        const rowKey = [spu || pid, tag, detailUrl, index].filter(Boolean).join("__");
         return {
           raw: clean,
-          id: pid || imageUrl || JSON.stringify(clean),
+          id: rowKey || imageUrl || JSON.stringify(clean),
           pid,
-          spu: getValue(clean, ["SPU", "spu"]),
+          spu,
           country: getValue(clean, ["国家", "Country", "country"]),
           store: getValue(clean, ["shop_name", "店铺名称", "店铺", "Store", "store"]),
           shopRating: getValue(clean, ["店铺评分", "店铺分", "店铺体验分", "shop_score", "shop_rating", "Shop Score", "Shop Rating", "Store Rating", "store_rating", "rating"]),
           secondCategory: getValue(clean, ["二级类目", "Second Category"]),
           thirdCategory: getValue(clean, ["三级类目", "类目", "Category", "category"]),
           listedAt: getValue(clean, ["上架时间", "首次上架日期", "上架日期", "Listed Date", "date"]),
-          tag: getValue(clean, ["新老品标签", "标签", "Tag", "tag"]),
+          tag,
           dailyShare: getValue(clean, ["商品卡日均占比", "日均占比", "Daily Share", "daily_share"]),
           gpmTier: getValue(clean, ["GPM分层", "GPM 分层", "GPM Tier", "gpm_tier"]),
           stock: getValue(clean, ["可用库存", "库存", "Available Stock", "stock"]),
@@ -1206,10 +1210,10 @@ window.INITIAL_PRODUCTS = [];
           affiliate: getValue(clean, ["是否在联盟", "联盟", "Affiliate", "affiliate"]),
           price: getValue(clean, ["营销价", "价格", "Price", "price"]),
           imageUrl,
-          detailUrl: getDetailUrl(clean, pid)
+          detailUrl
         };
       })
-      .filter((item) => item.pid || item.imageUrl);
+      .filter((item) => item.pid || item.spu || item.imageUrl);
   }
 
   function getValue(row, keys) {
